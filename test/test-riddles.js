@@ -69,7 +69,7 @@ describe('Riddle API resource', function() {
 
      let res;
       return chai.request(app)
-        .get('/posts')
+        .get('/riddles')
         .then(function(_res) {
          res=_res;
          expect(res).to.be.json;
