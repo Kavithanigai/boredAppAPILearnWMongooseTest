@@ -10,6 +10,7 @@ const { DATABASE_URL, PORT } = require('./config');
 const { Riddle } = require('./models');
 
 const app = express();
+app.use(express.static('public'));
 
 app.use(morgan('common'));
 app.use(bodyParser.json());
