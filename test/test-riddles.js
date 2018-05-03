@@ -76,11 +76,11 @@ describe('Riddle API resource', function() {
           expect(res).to.have.status(200);
 
           //check if atleast there is one blog post
-          expect(res.body).to.have.length.of.at.least(1);
+          expect(res.body).to.have.lengthOf.at.least(1);
           return Riddle.count();
         })
         .then(function(count) {
-          expect(res.body).to.have.length.of(count);
+          expect(res.body).to.have.lengthOf(count);
         });
     });
 
