@@ -178,16 +178,16 @@ describe('Riddle API resource', function() {
       let riddleQ;
       return Riddle
         .findOne()
-        .then(function(riddleQ) {
-          riddleQ=riddleQ;
-         return chai.request(app).delete(`/posts/${riddleQ.id}`);
+        .then(function(_riddleQ) {
+          riddleQ=_riddleQ;
+         return chai.request(app).delete(`/riddles/${riddleQ.id}`);
         })
         .then(function(res) {
          expect(res).to.have.status(204);
           return Riddle.findById(riddleQ.id);
         })
-        .then(function(riddleQ) {
-          expect(riddleQ).to.be.null;
+        .then(function(_riddleQ) {
+          expect(_riddleQ).to.be.null;
 
         });
     });
