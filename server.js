@@ -1,56 +1,159 @@
-//Import express- a minimalist web framework for nodeJS
+'use strict';
+
+const bodyParser = require('body-parser');
 const express = require('express');
-
-//Import morgan to log HTTP layer
 const morgan = require('morgan');
+const mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
 
-const riddlesRouter = require('./riddlesRouter');
-//Intialize app
+const { DATABASE_URL, PORT } = require('./config');
+const { Riddle } = require('./models');
+
 const app = express();
 
 app.use(morgan('common'));
+app.use(bodyParser.json());
+
+app.get('/riddles', (req, res) => {
+  Riddle
+    .find()
+    .then(riddles => {
+      res.json(riddles.map(riddle => riddle.serialize()));
+    })
+    .catch(err => {
+      console.error(err);
+      res.status(500).json({ error: 'something went terribly wrong' });
+    });
+});
+
+app.get('/riddles/:id', (req, res) => {
+  Riddle
+    .findById(req.params.id)
+    .then(riddle => res.json(riddle.serialize()))
+    .catch(err => {
+      console.error(err);
+      res.status(500).json({ error: 'something went horribly awry' });
+    });
+});
+
+app.post('/riddles', (req, res) => {
+  const requiredFields = ['riddle', 'answer'];
+  for (let i = 0; i < requiredFields.length; i++) {
+    const field = requiredFields[i];
+    if (!(field in req.body)) {
+      const message = `Missing \`${field}\` in request body`;
+      console.error(message);
+      return res.status(400).send(message);
+    }
+  }
+
+  Riddle
+    .create({
+      riddle: req.body.riddle,
+      answer: req.body.answer
+    })
+    .then(riddle => res.status(201).json(riddle.serialize()))
+    .catch(err => {
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
+    });
+
+});
 
 
-// you need to import `blogPostsRouter` router and route
-// requests to HTTP requests to `/blog-posts` to `blogPostsRouter`
-app.use('/riddles', riddlesRouter);
+app.delete('/riddles/:id', (req, res) => {
+  Riddle
+    .findByIdAndRemove(req.params.id)
+    .then(() => {
+      res.status(204).json({ message: 'success' });
+    })
+    .catch(err => {
+      console.error(err);
+      res.status(500).json({ error: 'something went terribly wrong' });
+    });
+});
 
-//create a server object for running and closing runServer
+
+app.put('/riddles/:id', (req, res) => {
+  if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
+    res.status(400).json({
+      error: 'Request path id and request body id values must match'
+    });
+  }
+
+  const updated = {};
+  const updateableFields = ['riddle', 'answer'];
+  updateableFields.forEach(field => {
+    if (field in req.body) {
+      updated[field] = req.body[field];
+    }
+  });
+
+  Riddle
+    .findByIdAndUpdate(req.params.id, { $set: updated }, { new: true })
+    .then(updatedRiddle => res.status(204).end())
+    .catch(err => res.status(500).json({ message: 'Something went wrong' }));
+});
+
+
+app.delete('/:id', (req, res) => {
+  Riddle
+    .findByIdAndRemove(req.params.id)
+    .then(() => {
+      console.log(`Deleted blog post with id \`${req.params.id}\``);
+      res.status(204).end();
+    });
+});
+
+
+app.use('*', function (req, res) {
+  res.status(404).json({ message: 'Not Found' });
+});
+
+// closeServer needs access to a server object, but that only
+// gets created when `runServer` runs, so we declare `server` here
+// and then assign a value to it in run
 let server;
 
-//starting server
-function runServer(){
-  const port = process.env.PORT || 8080;
-  return new Promise((resolve,reject) =>{
-    server = app.listen(port,() =>{
-      console.log(`Your app is listening on port ${port}`);
-      resolve(server);
-    }).on('error', err =>{
-      reject(err);
-    });
-    });
-}
-
-//Closing server
-function closeServer(){
-  return new Promise((resolve,reject) =>{
-      console.log('Closing Server');
-      server.close(err =>{
-      if(err){
-        reject(err);
-        return;
+// this function connects to our database, then starts the server
+function runServer(databaseUrl, port = PORT) {
+  return new Promise((resolve, reject) => {
+    mongoose.connect(databaseUrl, err => {
+      if (err) {
+        return reject(err);
       }
-      resolve();
-      });
+      server = app.listen(port, () => {
+        console.log(`Your app is listening on port ${port}`);
+        resolve();
+      })
+        .on('error', err => {
+          mongoose.disconnect();
+          reject(err);
+        });
+    });
   });
 }
 
-
-//if server is called directly with node server.js the following block works
-if(require.main === module){
-  runServer().catch(err => console.error(err));
+// this function closes the server, and returns a promise. we'll
+// use it in our integration tests later.
+function closeServer() {
+  return mongoose.disconnect().then(() => {
+    return new Promise((resolve, reject) => {
+      console.log('Closing server');
+      server.close(err => {
+        if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+  });
 }
 
-//we also export the runServer command so other code like test code) can start the server as needed.
+// if server.js is called directly (aka, with `node server.js`), this block
+// runs. but we also export the runServer command so other code (for instance, test code) can start the server as needed.
+if (require.main === module) {
+  runServer(DATABASE_URL).catch(err => console.error(err));
+}
 
-module.exports = {app,runServer, closeServer};
+module.exports = { runServer, app, closeServer };

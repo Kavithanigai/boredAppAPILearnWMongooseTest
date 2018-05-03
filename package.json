@@ -1,7 +1,7 @@
 {
   "name": "boredappapilearn",
   "version": "1.0.0",
-  "description": "",
+  "description": "bored app with mongoose",
   "main": "server.js",
   "scripts": {
     "test": "mocha --exit"
@@ -10,7 +10,8 @@
     "body-parser": "^1.18.2",
     "express": "^4.16.3",
     "morgan": "^1.9.0",
-    "uuid": "^3.2.1"
+    "uuid": "^3.2.1",
+    "mongoose": "^5.0.6"
   },
   "author": "",
   "license": "ISC",
