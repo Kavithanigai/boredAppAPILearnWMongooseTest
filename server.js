@@ -63,7 +63,7 @@ if (require.main === module) {
   runServer(DATABASE_URL).catch(err => console.error(err));
 }
 
-app.get('/toby', (req, res) => {
+app.get('/', (req, res) => {
 	res.status(200).sendFile(__dirname + '/public/index.html');
 });
 
