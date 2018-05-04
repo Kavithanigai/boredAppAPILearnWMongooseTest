@@ -1,119 +1,26 @@
-'use strict';
 
-const bodyParser = require('body-parser');
-const express = require('express');
+'use strict';
+//import express
+const express= require('express');
+
+//Log the http layer
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-mongoose.Promise = global.Promise;
+	mongoose.Promise = global.Promise;
 
-const { DATABASE_URL, PORT } = require('./config');
-const { Riddle } = require('./models');
+const {router:riddlesRouter}= require('./router/riddlesRouter');
 
+const { PORT, DATABASE_URL, TEST_DATABASE_URL } = require('./config');
+
+//initialize app
 const app = express();
-app.use(express.static('public'));
 
 app.use(morgan('common'));
-app.use(bodyParser.json());
+app.use(express.static('public'));
 
-app.get('/riddles', (req, res) => {
-  Riddle
-    .find()
-    .then(riddles => {
-      res.json(riddles.map(riddle => riddle.serialize()));
-    })
-    .catch(err => {
-      console.error(err);
-      res.status(500).json({ error: 'something went terribly wrong' });
-    });
-});
-
-app.get('/riddles/:id', (req, res) => {
-  Riddle
-    .findById(req.params.id)
-    .then(riddle => res.json(riddle.serialize()))
-    .catch(err => {
-      console.error(err);
-      res.status(500).json({ error: 'something went horribly awry' });
-    });
-});
-
-app.post('/riddles', (req, res) => {
-  const requiredFields = ['riddle', 'answer'];
-  for (let i = 0; i < requiredFields.length; i++) {
-    const field = requiredFields[i];
-    if (!(field in req.body)) {
-      const message = `Missing \`${field}\` in request body`;
-      console.error(message);
-      return res.status(400).send(message);
-    }
-  }
-
-  Riddle
-    .create({
-      riddle: req.body.riddle,
-      answer: req.body.answer
-    })
-    .then(riddle => res.status(201).json(riddle.serialize()))
-    .catch(err => {
-      console.error(err);
-      res.status(500).json({ error: 'Something went wrong' });
-    });
-
-});
+app.use('/riddles', riddlesRouter);
 
 
-app.delete('/riddles/:id', (req, res) => {
-  Riddle
-    .findByIdAndRemove(req.params.id)
-    .then(() => {
-      res.status(204).json({ message: 'success' });
-    })
-    .catch(err => {
-      console.error(err);
-      res.status(500).json({ error: 'something went terribly wrong' });
-    });
-});
-
-
-app.put('/riddles/:id', (req, res) => {
-  if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
-    res.status(400).json({
-      error: 'Request path id and request body id values must match'
-    });
-  }
-
-  const updated = {};
-  const updateableFields = ['riddle', 'answer'];
-  updateableFields.forEach(field => {
-    if (field in req.body) {
-      updated[field] = req.body[field];
-    }
-  });
-
-  Riddle
-    .findByIdAndUpdate(req.params.id, { $set: updated }, { new: true })
-    .then(updatedRiddle => res.status(204).end())
-    .catch(err => res.status(500).json({ message: 'Something went wrong' }));
-});
-
-
-app.delete('/:id', (req, res) => {
-  Riddle
-    .findByIdAndRemove(req.params.id)
-    .then(() => {
-      console.log(`Deleted blog post with id \`${req.params.id}\``);
-      res.status(204).end();
-    });
-});
-
-
-app.use('*', function (req, res) {
-  res.status(404).json({ message: 'Not Found' });
-});
-
-// closeServer needs access to a server object, but that only
-// gets created when `runServer` runs, so we declare `server` here
-// and then assign a value to it in run
 let server;
 
 // this function connects to our database, then starts the server
@@ -135,8 +42,7 @@ function runServer(databaseUrl, port = PORT) {
   });
 }
 
-// this function closes the server, and returns a promise. we'll
-// use it in our integration tests later.
+// this function closes the server, and returns a promise.
 function closeServer() {
   return mongoose.disconnect().then(() => {
     return new Promise((resolve, reject) => {
@@ -152,9 +58,20 @@ function closeServer() {
 }
 
 // if server.js is called directly (aka, with `node server.js`), this block
-// runs. but we also export the runServer command so other code (for instance, test code) can start the server as needed.
+// runs.
 if (require.main === module) {
   runServer(DATABASE_URL).catch(err => console.error(err));
 }
+
+app.get('/toby', (req, res) => {
+	res.status(200).sendFile(__dirname + '/public/index.html');
+});
+
+/*
+app.get('/riddles', (req, res) => {
+    res.json(riddles.get());
+});*/
+
+
 
 module.exports = { runServer, app, closeServer };

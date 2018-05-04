@@ -1,3 +1,13 @@
 body {
   padding: 50px;
 }
+
+.searchBtn{
+  height: 38px;
+  background: #6E6E6E;
+  border: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  color: white;
+  border-radius: 3px;
+}

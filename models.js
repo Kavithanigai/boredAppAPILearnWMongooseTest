@@ -3,14 +3,14 @@
 const uuid = require('uuid');
 const mongoose = require('mongoose');
 
-//Schema for blogposts
+//Schema for riddles
 const riddlesSchema = mongoose.Schema({
       riddle: {type: String, required: true},
       answer: {type: String, required: true}
 });
 
 
-//instance method for blogpostsSchema to get only some fields
+//instance method for riddlesSchema to get only some fields
 riddlesSchema.methods.serialize  = function(){
   return {
     id: this.id,
